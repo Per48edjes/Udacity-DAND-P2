@@ -1,7 +1,10 @@
 import glob
 import pandas as pd
+from scipy import stats
+import numpy as np
 
-# Import all the data to a dictionary where keys are file names and values
+
+# 0. Import all the data to a dictionary where keys are file names and values
 # are dataframes ###
 filename_list = glob.glob('*.csv')
 data_dict = {f[:-4]: pd.read_csv(f) for f in filename_list}
@@ -12,9 +15,9 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', 10)
 
 
-### Rankings of WS-winning Teams ###
+### 1. Rankings of WS-winning Teams ###
 
-## Adding compound team metrics ##
+## 1.1 Adding compound team metrics ##
 
 # On-base Percentage, "OBP"
 data_dict["Teams"]["OBP"] = (data_dict[
@@ -48,7 +51,6 @@ data_dict["Teams"]["OPS"] = data_dict[
 # Team Batting Average, "teamBA"
 data_dict["Teams"]["teamBA"] = data_dict[
     "Teams"]["H"] / data_dict["Teams"]["AB"]
-
 
 # Making WSWin column summarizable
 data_dict["Teams"].replace({'WSWin': {'Y': 1, 'N': 0}}, inplace=True)
@@ -84,38 +86,20 @@ grouped_Teams = data_dict["Teams"].groupby(["yearID", "teamID"]).mean()
 data_dict["Teams"] = grouped_Teams.merge(
     grouped_Ages, left_index=True, right_index=True, how="inner")
 
-### Assemble dataframe of percentile rankings for selected statistics ###
+### 1.2 Assemble dataframe of percentile rankings for selected statistics ###
 
 # Begin exploring where the WS team falls in distribution for various
 # statistics vs. competitors in a given year ###
 
-from scipy import stats
+# Ignore gnore RuntimeWarning: invalid value when computing percentiles
+np.seterr(divide='ignore', invalid='ignore')
+
 
 # Create dataframe containing all stats of interest
-
 stats_of_interest = ["R", "H", "teamBA",
                      "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
 
-
-'''
-!!! NEED TO FIX THE PERCENTILE GENERATING FUNCTION !!!
-'''
-
-
-# pctiles_WS_winners = pd.DataFrame(
-#     index=data_dict["Teams"].index.values, columns=stats_of_interest)
-#
-#
-# def WSwin_pctile_gen(df):
-#     for stat in df.columns.values:
-#         for year in df.index.values:
-#             # Isolate all data for given stat in a year
-#             year_rows = data_dict["Teams"][
-#                 data_dict["Teams"]["yearID"] == year]
-#             # Return the percentile of WS winner in given year
-#             pctile = stats.percentileofscore(
-#                 year_rows[stat], yearindexed_WS_winning_teams.loc[year, stat], kind='strict')
-#             df.loc[year, stat] = pctile
-#
-# WSwin_pctile_gen(pctiles_WS_winners)
-# print pctiles_WS_winners
+pctile_calc = lambda x: [stats.percentileofscore(x, a, 'strict') for a in x]
+pctile_table = data_dict["Teams"].apply(pctile_calc)
+WSWinner_pctile_table = pctile_table[pctile_table["WSWin"] > 0.0]
+print pctile_table
