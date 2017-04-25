@@ -83,7 +83,7 @@ age_df["age"] = age_df["yearID"] - age_df["birthYear"]
 # Add "age" column to "Teams" table
 grouped_Ages = age_df.groupby(["yearID", "teamID"]).mean()[["age"]]
 grouped_Teams = data_dict["Teams"].groupby(["yearID", "teamID"]).mean()
-data_dict["Teams"] = grouped_Teams.merge(
+team_summary_per_year = grouped_Teams.merge(
     grouped_Ages, left_index=True, right_index=True, how="inner")
 
 ### 1.2 Assemble dataframe of percentile rankings for selected statistics ###
@@ -100,6 +100,6 @@ stats_of_interest = ["R", "H", "teamBA",
                      "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
 
 pctile_calc = lambda x: [stats.percentileofscore(x, a, 'strict') for a in x]
-pctile_table = data_dict["Teams"].apply(pctile_calc)
+pctile_table = team_summary_per_year.apply(pctile_calc)
 WSWinner_pctile_table = pctile_table[pctile_table["WSWin"] > 0.0]
 print pctile_table
