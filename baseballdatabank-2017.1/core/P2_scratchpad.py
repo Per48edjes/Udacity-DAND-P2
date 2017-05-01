@@ -3,17 +3,18 @@ import pandas as pd
 from scipy import stats
 import numpy as np
 
-
-# 0. Import all the data to a dictionary where keys are file names and values
-# are dataframes ###
-filename_list = glob.glob('*.csv')
-data_dict = {f[:-4]: pd.read_csv(f) for f in filename_list}
-
 ## Show all the columns ##
 pd.set_option('display.max_columns', None)
 ## Show top and bottom 3 rows ##
 pd.set_option('display.max_rows', 10)
 
+## Ignore gnore RuntimeWarning: invalid value when computing percentiles ##
+np.seterr(divide='ignore', invalid='ignore')
+
+
+### 0. Import data ###
+filename_list = glob.glob('*.csv')
+data_dict = {f[:-4]: pd.read_csv(f) for f in filename_list}
 
 ### 1. Rankings of WS-winning Teams ###
 
@@ -86,20 +87,36 @@ grouped_Teams = data_dict["Teams"].groupby(["yearID", "teamID"]).mean()
 team_summary_per_year = grouped_Teams.merge(
     grouped_Ages, left_index=True, right_index=True, how="inner")
 
-### 1.2 Assemble dataframe of percentile rankings for selected statistics ###
+### 1.2 Assemble dataframe of rankings for selected statistics ###
 
 # Begin exploring where the WS team falls in distribution for various
 # statistics vs. competitors in a given year ###
 
-# Ignore gnore RuntimeWarning: invalid value when computing percentiles
-np.seterr(divide='ignore', invalid='ignore')
+
+def pctile_calc(x): return [stats.percentileofscore(x, a, 'mean') for a in x]
 
 
-# Create dataframe containing all stats of interest
+def zscore(x): return stats.zscore(x)
+
+
+def stdizer(df, names, *args):
+    std_tables = {}
+    name_picker = 0
+    for f in args:
+        temp_dic = {}
+        for year in set(team_summary_per_year.index.get_level_values("yearID")):
+            df_temp = df.loc[year].apply(f)
+            df_temp["yearID"] = [year for teams in df_temp.index.values]
+            temp_dic[year] = df_temp.reset_index().groupby(
+                ["yearID", "teamID"]).max()
+        std_tables[names[name_picker]] = pd.concat(list(temp_dic.values()))
+        name_picker += 1
+    return std_tables
+
+
+std_tables_names = ["percentiles", "zscores"]
+std_data_library = stdizer(team_summary_per_year,
+                           std_tables_names, pctile_calc, zscore)
+
 stats_of_interest = ["R", "H", "teamBA",
                      "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
-
-pctile_calc = lambda x: [stats.percentileofscore(x, a, 'strict') for a in x]
-pctile_table = team_summary_per_year.apply(pctile_calc)
-WSWinner_pctile_table = pctile_table[pctile_table["WSWin"] > 0.0]
-print pctile_table
