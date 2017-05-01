@@ -6,7 +6,7 @@ import numpy as np
 ## Show all the columns ##
 pd.set_option('display.max_columns', None)
 ## Show top and bottom 3 rows ##
-pd.set_option('display.max_rows', 10)
+pd.set_option('display.max_rows', 20)
 
 ## Ignore gnore RuntimeWarning: invalid value when computing percentiles ##
 np.seterr(divide='ignore', invalid='ignore')
@@ -120,3 +120,6 @@ std_data_library = stdizer(team_summary_per_year,
 
 stats_of_interest = ["R", "H", "teamBA",
                      "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
+
+zscores_wswinners = std_data_library["zscores"].reset_index().groupby("yearID").apply(
+    lambda x: x.sort_values("WSWin", ascending=False).head(1)).set_index(["yearID", "teamID"])
