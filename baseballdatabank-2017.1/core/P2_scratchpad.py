@@ -2,11 +2,14 @@ import glob
 import pandas as pd
 from scipy import stats
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 ## Show all the columns ##
 pd.set_option('display.max_columns', None)
-## Show top and bottom 3 rows ##
-pd.set_option('display.max_rows', 20)
+## Show limited rows ##
+pd.set_option('display.max_rows', 50)
 
 ## Ignore gnore RuntimeWarning: invalid value when computing percentiles ##
 np.seterr(divide='ignore', invalid='ignore')
@@ -53,6 +56,11 @@ data_dict["Teams"]["OPS"] = data_dict[
 data_dict["Teams"]["teamBA"] = data_dict[
     "Teams"]["H"] / data_dict["Teams"]["AB"]
 
+# Walks plus hits per inning pitched, "WHIP"
+
+data_dict["Teams"]["WHIP"] = (data_dict["Teams"][
+                              "BBA"] + data_dict["Teams"]["HA"]) / (data_dict["Teams"]["IPouts"] / 3)
+
 # Making WSWin column summarizable
 data_dict["Teams"].replace({'WSWin': {'Y': 1, 'N': 0}}, inplace=True)
 
@@ -93,10 +101,12 @@ team_summary_per_year = grouped_Teams.merge(
 # statistics vs. competitors in a given year ###
 
 
-def pctile_calc(x): return [stats.percentileofscore(x, a, 'mean') for a in x]
+def pctile_calc(x):
+    return [stats.percentileofscore(x, a, 'mean') for a in x]
 
 
-def zscore(x): return stats.zscore(x)
+def zscore(x):
+    return stats.zscore(x)
 
 
 def stdizer(df, names, *args):
@@ -123,3 +133,57 @@ stats_of_interest = ["R", "H", "teamBA",
 
 zscores_wswinners = std_data_library["zscores"].reset_index().groupby("yearID").apply(
     lambda x: x.sort_values("WSWin", ascending=False).head(1)).set_index(["yearID", "teamID"])
+
+
+### 1.3 Charting of pairwise comparisons ###
+
+
+# Experimenting by creating 1 pairwise scatter plot(quadrant delineation
+#                                                   important!)
+
+fig = plt.figure()
+for i in range(1, 10):
+    x = zscores_wswinners["teamBA"]
+    y = zscores_wswinners["ERA"]
+
+    ax = fig.add_subplot(330 + i)
+    ax.scatter(x, y)
+    plot_axes_range = [-3, 3, -3, 3]
+    ax.axis(plot_axes_range, 'equal')
+
+    ax.spines['left'].set_position('center')
+    ax.spines['right'].set_color('none')
+    ax.spines['bottom'].set_position('zero')
+    ax.spines['top'].set_color('none')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+
+    ax.axhline(linewidth=1, color='black')
+    ax.axvline(linewidth=1, color='black')
+
+plt.show()
+
+# Heatmap for correlations
+# corrmat = zscores_wswinners.corr()
+# print corrmat
+# f, ax = plt.subplots(figsize=(12, 9))
+# sns.heatmap(corrmat, vmax=.8, square=True)
+
+# k = 10  # number of variables for heatmap
+# cols = corrmat.nlargest(k, 'WSWin')['WSWin'].index
+# cm = np.corrcoef(zscores_wswinners[cols].values.T)
+# sns.set(font_scale=1.25)
+# hm = sns.heatmap(cm, cbar=True, annot=True, square=True, fmt='.2f', annot_kws={
+#                  'size': 10}, yticklabels=cols.values, xticklabels=cols.values)
+
+# plt.show()
+
+# Experimenting with many pairwise plots
+
+# Select the years which have information on across all dimensions
+# df = zscores_wswinners[-zscores_wswinners["OPS"].isnull()]
+#
+# sns.set()
+# cols = ["WHIP", "OPS", "ERA", "teamBA", "age"]
+# sns.pairplot(df[cols], size=2.5)
+# plt.show()

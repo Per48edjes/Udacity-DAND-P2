@@ -1,4 +1,13 @@
+// Theoretical
 What sort of statistical tests could I run that would make sense if I have the entirety of the population?
+
+>> Treat the existing data as a sample of "all of baseball data" for all of time.
 
 Is finding the percentile a good way to show relative prowess in for a given stat?
 (e.g., 1906 hitting)
+
+>> Using z-score to measure standardized differences.
+
+What are the most telling pairwise comparisons?
+
+>> Use pairwise regressions.
