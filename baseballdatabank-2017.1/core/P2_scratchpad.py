@@ -128,25 +128,23 @@ std_tables_names = ["percentiles", "zscores"]
 std_data_library = stdizer(team_summary_per_year,
                            std_tables_names, pctile_calc, zscore)
 
-stats_of_interest = ["R", "H", "teamBA",
-                     "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
-
 zscores_wswinners = std_data_library["zscores"].reset_index().groupby("yearID").apply(
     lambda x: x.sort_values("WSWin", ascending=False).head(1)).set_index(["yearID", "teamID"])
 
 
 ### 1.3 Charting of pairwise comparisons ###
 
+stats_of_interest = ["R", "H", "teamBA",
+                     "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
 
 # Experimenting by creating 1 pairwise scatter plot(quadrant delineation
-#                                                   important!)
-
+# important!)
 fig = plt.figure()
 for i in range(1, 10):
     x = zscores_wswinners["teamBA"]
     y = zscores_wswinners["ERA"]
 
-    ax = fig.add_subplot(330 + i)
+    ax = fig.add_subplot(3, 3, i)
     ax.scatter(x, y)
     plot_axes_range = [-3, 3, -3, 3]
     ax.axis(plot_axes_range, 'equal')
@@ -181,9 +179,9 @@ plt.show()
 # Experimenting with many pairwise plots
 
 # Select the years which have information on across all dimensions
-# df = zscores_wswinners[-zscores_wswinners["OPS"].isnull()]
-#
-# sns.set()
-# cols = ["WHIP", "OPS", "ERA", "teamBA", "age"]
-# sns.pairplot(df[cols], size=2.5)
-# plt.show()
+df = zscores_wswinners[-zscores_wswinners["OPS"].isnull()]
+
+sns.set()
+cols = ["WHIP", "OPS", "ERA", "teamBA", "age"]
+sns.pairplot(df[cols], size=2.5)
+plt.show()
