@@ -17,8 +17,3 @@ Hypothesis: young home grown talent is so important because they are usually rea
 
 
 -----------
-CHEMISTRY EXPLORATION:
-- How would I measure/index "home grown"-ness?
-
-HYPOTHESIS TEST:
--- You can merge different data files and ask something more complicated like: Is the average salary for World Series winners each year above the average for all teams?

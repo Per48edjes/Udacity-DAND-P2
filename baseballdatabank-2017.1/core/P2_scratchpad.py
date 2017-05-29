@@ -89,11 +89,45 @@ age_df["age"] = age_df["yearID"] - age_df["birthYear"]
 # missing_age_info = age_df[age_df.isnull().birthYear]
 # print len(set(missing_age_info.playerID))
 
-# Add "age" column to "Teams" table
+# Add "age", "salaries" column to "Teams" table
 grouped_Ages = age_df.groupby(["yearID", "teamID"]).mean()[["age"]]
 grouped_Teams = data_dict["Teams"].groupby(["yearID", "teamID"]).mean()
-team_summary_per_year = grouped_Teams.merge(
-    grouped_Ages, left_index=True, right_index=True, how="inner")
+salary_info = data_dict["Salaries"].groupby(
+    ["yearID", "teamID"]).median()[["salary"]]
+
+team_summary_per_year = grouped_Teams.join(
+    grouped_Ages, how="left").join(salary_info, how="left")
+
+
+## Fixing year 2016's missing salary summary stats due to mismatched teamIDs ##
+
+# Find the rows in the team_summary_per_year table missing salary info
+missing_team_sals = list(zip(
+    *team_summary_per_year[team_summary_per_year.salary.isnull()].salary.ix[1985:].index.values)[1])
+
+# Find the teamIDs in salary_info but NOT in team_summary_per_year
+teamIDs_from_salary_info = list(set(salary_info.ix[
+                                2016].index.values) - set(team_summary_per_year.ix[2016].index.values))
+
+# Reconcile teamIDs; create a mapping to do look-up
+teamID_df = data_dict["Teams"][data_dict["Teams"].loc[
+    :, "yearID"] == 2016].loc[:, ["teamIDBR", "teamID"]]
+
+teamID_mapping = teamID_df[teamID_df["teamID"] !=
+                           teamID_df["teamIDBR"]]
+
+teamID_mapping.set_index(["teamID"], drop=True, inplace=True)
+
+# Replace the missing 'salary' values in team_summary_per_year
+df = team_summary_per_year.ix[2016,
+                              'salary'].ix[team_summary_per_year.ix[2016, 'salary'].isnull()]
+
+df1 = df.reset_index()['teamID'].map(
+    lambda x: salary_info.ix[(2016, teamID_mapping.ix[x, 'teamIDBR']), 'salary'])
+
+team_summary_per_year.ix[2016,
+                         'salary'].ix[team_summary_per_year.ix[2016, 'salary'].isnull()] = df1.astype(np.float64).values
+
 
 ### 1.2 Assemble dataframe of rankings for selected statistics ###
 
@@ -135,31 +169,31 @@ zscores_wswinners = std_data_library["zscores"].reset_index().groupby("yearID").
 ### 1.3 Charting of pairwise comparisons ###
 
 stats_of_interest = ["R", "H", "teamBA",
-                     "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age"]
+                     "SLG", "OBP", "OPS", "SB", "RA", "ERA", "HA", "SO", "BBA", "age", "salary"]
 
 # Experimenting by creating 1 pairwise scatter plot(quadrant delineation
 # important!)
-fig = plt.figure()
-for i in range(1, 10):
-    x = zscores_wswinners["teamBA"]
-    y = zscores_wswinners["ERA"]
-
-    ax = fig.add_subplot(3, 3, i)
-    ax.scatter(x, y)
-    plot_axes_range = [-3, 3, -3, 3]
-    ax.axis(plot_axes_range, 'equal')
-
-    ax.spines['left'].set_position('center')
-    ax.spines['right'].set_color('none')
-    ax.spines['bottom'].set_position('zero')
-    ax.spines['top'].set_color('none')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-
-    ax.axhline(linewidth=1, color='black')
-    ax.axvline(linewidth=1, color='black')
-
-plt.show()
+# fig = plt.figure()
+# for i in range(1, 10):
+#     x = zscores_wswinners["teamBA"]
+#     y = zscores_wswinners["ERA"]
+#
+#     ax = fig.add_subplot(3, 3, i)
+#     ax.scatter(x, y)
+#     plot_axes_range = [-3, 3, -3, 3]
+#     ax.axis(plot_axes_range, 'equal')
+#
+#     ax.spines['left'].set_position('center')
+#     ax.spines['right'].set_color('none')
+#     ax.spines['bottom'].set_position('zero')
+#     ax.spines['top'].set_color('none')
+#     ax.xaxis.set_ticks_position('bottom')
+#     ax.yaxis.set_ticks_position('left')
+#
+#     ax.axhline(linewidth=1, color='black')
+#     ax.axvline(linewidth=1, color='black')
+#
+# plt.show()
 
 # Heatmap for correlations
 # corrmat = zscores_wswinners.corr()
@@ -179,9 +213,8 @@ plt.show()
 # Experimenting with many pairwise plots
 
 # Select the years which have information on across all dimensions
-df = zscores_wswinners[-zscores_wswinners["OPS"].isnull()]
-
-sns.set()
-cols = ["WHIP", "OPS", "ERA", "teamBA", "age"]
-sns.pairplot(df[cols], size=2.5)
-plt.show()
+# df = zscores_wswinners[-zscores_wswinners["OPS"].isnull()]
+# sns.set()
+# cols = ["WHIP", "OPS", "ERA", "teamBA", "age", "salary"]
+# sns.pairplot(df[cols])
+# plt.show()
