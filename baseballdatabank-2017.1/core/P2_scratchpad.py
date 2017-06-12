@@ -118,16 +118,21 @@ teamID_mapping = teamID_df[teamID_df["teamID"] !=
 
 teamID_mapping.set_index(["teamID"], drop=True, inplace=True)
 
-# Replace the missing 'salary' values in team_summary_per_year
-df = team_summary_per_year.ix[2016,
-                              'salary'].ix[team_summary_per_year.ix[2016, 'salary'].isnull()]
+# Replace the missing 'salary' values in team_summary_per_year"
+
+# Ignore SettingWithCopyWarning flag
+pd.options.mode.chained_assignment = None
+
+mask = team_summary_per_year.loc[2016, 'salary'].isnull()
+
+df = team_summary_per_year.loc[2016,
+                               'salary'].loc[mask]
 
 df1 = df.reset_index()['teamID'].map(
-    lambda x: salary_info.ix[(2016, teamID_mapping.ix[x, 'teamIDBR']), 'salary'])
+    lambda x: salary_info.loc[(2016, teamID_mapping.loc[x, 'teamIDBR']), 'salary'])
 
-team_summary_per_year.ix[2016,
-                         'salary'].ix[team_summary_per_year.ix[2016, 'salary'].isnull()] = df1.astype(np.float64).values
-
+team_summary_per_year.loc[2016,
+                          'salary'].loc[mask] = df1.astype(np.float64).values
 
 ### 1.2 Assemble dataframe of rankings for selected statistics ###
 

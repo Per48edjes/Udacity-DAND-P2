@@ -1,7 +1,7 @@
 // Theoretical
 What sort of statistical tests could I run that would make sense if I have the entirety of the population?
 
->> Is the average salary for World Series winners each year above the average for all teams?
+>> Is the median salary for World Series winners each year above the median for all teams?
 
 >> Treat the existing data as a sample of "all of baseball data" for all of time.
 
